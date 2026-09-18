@@ -11,14 +11,23 @@ interface Props {
 export default function QRScannerModal({ visible, onScan, onClose }: Props) {
   const [error, setError] = useState('');
   const scannerRef = useRef<any>(null);
+  const isRunningRef = useRef(false);
+
+  const stopScanner = () => {
+    if (scannerRef.current && isRunningRef.current) {
+      scannerRef.current.stop().catch(() => {});
+      isRunningRef.current = false;
+    }
+    scannerRef.current = null;
+  };
 
   useEffect(() => {
     if (!visible) return;
     setError('');
-    let stopped = false;
+    let cancelled = false;
 
     import('html5-qrcode').then(({ Html5Qrcode }) => {
-      if (stopped) return;
+      if (cancelled) return;
       const scanner = new Html5Qrcode('qr-reader-div');
       scannerRef.current = scanner;
 
@@ -29,10 +38,10 @@ export default function QRScannerModal({ visible, onScan, onClose }: Props) {
           try {
             const data = JSON.parse(decodedText);
             if (typeof data.name === 'string' && typeof data.price === 'number') {
-              scanner.stop().then(() => {
-                scannerRef.current = null;
-                onScan(data);
-              }).catch(() => {});
+              isRunningRef.current = false;
+              scanner.stop().catch(() => {});
+              scannerRef.current = null;
+              onScan(data);
             } else {
               setError('올바른 QR 코드가 아닙니다.');
             }
@@ -41,25 +50,22 @@ export default function QRScannerModal({ visible, onScan, onClose }: Props) {
           }
         },
         () => {}
-      ).catch(() => {
+      ).then(() => {
+        isRunningRef.current = true;
+      }).catch(() => {
+        scannerRef.current = null;
         setError('카메라 접근 권한이 필요합니다.\n브라우저 주소창 옆 카메라 아이콘을 허용해주세요.');
       });
     });
 
     return () => {
-      stopped = true;
-      if (scannerRef.current) {
-        scannerRef.current.stop().catch(() => {});
-        scannerRef.current = null;
-      }
+      cancelled = true;
+      stopScanner();
     };
   }, [visible]);
 
   const handleClose = () => {
-    if (scannerRef.current) {
-      scannerRef.current.stop().catch(() => {});
-      scannerRef.current = null;
-    }
+    stopScanner();
     setError('');
     onClose();
   };
