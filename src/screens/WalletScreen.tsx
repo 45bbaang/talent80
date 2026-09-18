@@ -242,6 +242,7 @@ export default function WalletScreen() {
         visible={showReceipt}
         itemName={qrItem?.name ?? ''}
         price={qrItem?.price ?? 0}
+        balance={balance}
         onClose={() => { setShowReceipt(false); setQrItem(null); }}
       />
 
