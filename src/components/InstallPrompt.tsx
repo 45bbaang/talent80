@@ -38,7 +38,16 @@ export default function InstallPrompt() {
       setVisible(true);
     };
     window.addEventListener('beforeinstallprompt', handler);
-    return () => window.removeEventListener('beforeinstallprompt', handler);
+
+    // 3초 후에도 이벤트 없으면 수동 안내 배너 표시
+    const fallback = setTimeout(() => {
+      if (!deferredPrompt) setVisible(true);
+    }, 3000);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler);
+      clearTimeout(fallback);
+    };
   }, []);
 
   const openInChrome = () => {
@@ -79,11 +88,17 @@ export default function InstallPrompt() {
       <View style={styles.banner}>
         <View style={{ flex: 1 }}>
           <Text style={styles.bannerTitle}>📱 앱으로 설치하기</Text>
-          <Text style={styles.bannerSub}>홈 화면에 추가하면 앱처럼 사용 가능해요</Text>
+          <Text style={styles.bannerSub}>
+            {deferredPrompt
+              ? '홈 화면에 추가하면 앱처럼 사용 가능해요'
+              : 'Chrome 메뉴(⋮) → "앱 설치" 또는 "홈 화면에 추가"'}
+          </Text>
         </View>
-        <TouchableOpacity style={styles.installBtn} onPress={handleInstall}>
-          <Text style={styles.installBtnText}>설치</Text>
-        </TouchableOpacity>
+        {deferredPrompt && (
+          <TouchableOpacity style={styles.installBtn} onPress={handleInstall}>
+            <Text style={styles.installBtnText}>설치</Text>
+          </TouchableOpacity>
+        )}
         <TouchableOpacity style={styles.closeBtn} onPress={() => setVisible(false)}>
           <Text style={styles.closeBtnText}>✕</Text>
         </TouchableOpacity>
