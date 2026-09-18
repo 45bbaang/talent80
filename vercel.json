@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npx expo export --platform web && cp public/sw.js dist/sw.js && cp public/manifest.json dist/manifest.json && cp assets/icon.png dist/icon-192.png && cp assets/icon.png dist/icon-512.png && node -e \"const fs=require('fs');const html=fs.readFileSync('dist/index.html','utf8');fs.writeFileSync('dist/index.html',html.replace('</head>','<link rel=\\\"manifest\\\" href=\\\"/manifest.json\\\"/><meta name=\\\"theme-color\\\" content=\\\"#E8B54A\\\"/></head>'))\"",
+  "buildCommand": "npx expo export --platform web && node scripts/post-build.js",
   "outputDirectory": "dist",
   "framework": null,
   "rewrites": [
