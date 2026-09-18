@@ -7,6 +7,7 @@ export default function InstallPrompt() {
   const [visible, setVisible] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [iosPrompt, setIosPrompt] = useState(false);
+  const [kakaoVisible, setKakaoVisible] = useState(false);
 
   useEffect(() => {
     if (Platform.OS !== 'web') return;
@@ -14,8 +15,15 @@ export default function InstallPrompt() {
     // 이미 설치된 경우 (standalone 모드) 표시 안 함
     if (window.matchMedia('(display-mode: standalone)').matches) return;
 
-    // iOS Safari 감지
     const ua = navigator.userAgent;
+
+    // 카카오톡 인앱 브라우저 감지
+    if (/KAKAOTALK/i.test(ua)) {
+      setKakaoVisible(true);
+      return;
+    }
+
+    // iOS Safari 감지
     const isIOSSafari = /iP(hone|ad|od)/.test(ua) && /WebKit/.test(ua) && !/CriOS/.test(ua);
     if (isIOSSafari) {
       setIsIOS(true);
@@ -33,6 +41,12 @@ export default function InstallPrompt() {
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
+  const openInChrome = () => {
+    const url = window.location.href;
+    // Android: intent URL로 Chrome 강제 실행
+    window.location.href = `intent://${url.replace(/^https?:\/\//, '')}#Intent;scheme=https;package=com.android.chrome;end`;
+  };
+
   const handleInstall = async () => {
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
@@ -40,6 +54,24 @@ export default function InstallPrompt() {
     setDeferredPrompt(null);
     setVisible(false);
   };
+
+  // 카카오톡 인앱 브라우저 안내
+  if (kakaoVisible) {
+    return (
+      <View style={styles.kakaoBanner}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.kakaoTitle}>Chrome으로 열어주세요</Text>
+          <Text style={styles.kakaoSub}>카카오톡에서는 앱 설치 및 카메라 기능이 제한돼요</Text>
+        </View>
+        <TouchableOpacity style={styles.chromeBtn} onPress={openInChrome}>
+          <Text style={styles.chromeBtnText}>Chrome 열기</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.closeBtn} onPress={() => setKakaoVisible(false)}>
+          <Text style={styles.closeBtnText}>✕</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   // Android 설치 배너
   if (visible) {
@@ -120,4 +152,25 @@ const styles = StyleSheet.create({
     paddingVertical: 10, alignItems: 'center', marginTop: 12,
   },
   iosCloseBtnText: { color: C.textDark, fontWeight: 'bold' },
+
+  kakaoBanner: {
+    position: 'absolute' as any,
+    bottom: 70,
+    left: 12, right: 12,
+    backgroundColor: '#FEE500',
+    borderRadius: R.lg,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    ...shadow,
+    zIndex: 999,
+  },
+  kakaoTitle: { color: '#3C1E1E', fontWeight: 'bold', fontSize: 14 },
+  kakaoSub: { color: '#7A5C5C', fontSize: 11, marginTop: 2 },
+  chromeBtn: {
+    backgroundColor: '#3C1E1E', borderRadius: R.md,
+    paddingVertical: 8, paddingHorizontal: 12,
+  },
+  chromeBtnText: { color: '#FEE500', fontWeight: 'bold', fontSize: 13 },
 });
