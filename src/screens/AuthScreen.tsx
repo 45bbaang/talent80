@@ -2,43 +2,44 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Image } from 'react-native';
 import { useFonts } from 'expo-font';
 import { AntDesign } from '@expo/vector-icons';
-import { GoogleAuthProvider, signInWithRedirect, getRedirectResult } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
 import { C, R, shadow } from '../constants/theme';
 
+const isMobile = typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+async function saveUserIfNew(uid: string, displayName: string | null, email: string | null) {
+  const userRef = doc(db, 'users', uid);
+  const snap = await getDoc(userRef);
+  if (!snap.exists()) {
+    await setDoc(userRef, {
+      name: displayName ?? '이름없음',
+      email: email ?? '',
+      role: 'user',
+      balance: 0,
+      totalEarned: 0,
+    });
+  }
+}
+
 export default function AuthScreen() {
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(isMobile);
   const [error, setError] = useState('');
 
   const [fontsLoaded] = useFonts({
     'PyeongChangPeace-Bold': require('../../assets/fonts/PyeongChangPeace-Bold.ttf'),
   });
 
+  // 모바일: 리다이렉트 후 돌아왔을 때 결과 처리
   useEffect(() => {
+    if (!isMobile) return;
     getRedirectResult(auth)
       .then(async (result) => {
-        if (result) {
-          const user = result.user;
-          const userRef = doc(db, 'users', user.uid);
-          const userSnap = await getDoc(userRef);
-          if (!userSnap.exists()) {
-            await setDoc(userRef, {
-              name: user.displayName ?? '이름없음',
-              email: user.email ?? '',
-              role: 'user',
-              balance: 0,
-              totalEarned: 0,
-            });
-          }
-        }
+        if (result) await saveUserIfNew(result.user.uid, result.user.displayName, result.user.email);
       })
-      .catch(() => {
-        setError('로그인에 실패했습니다. 다시 시도해주세요.');
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+      .catch(() => setError('로그인에 실패했습니다. 다시 시도해주세요.'))
+      .finally(() => setLoading(false));
   }, []);
 
   const handleGoogleLogin = async () => {
@@ -46,7 +47,12 @@ export default function AuthScreen() {
     setError('');
     try {
       const provider = new GoogleAuthProvider();
-      await signInWithRedirect(auth, provider);
+      if (isMobile) {
+        await signInWithRedirect(auth, provider);
+      } else {
+        const result = await signInWithPopup(auth, provider);
+        await saveUserIfNew(result.user.uid, result.user.displayName, result.user.email);
+      }
     } catch {
       setError('로그인에 실패했습니다. 다시 시도해주세요.');
       setLoading(false);
