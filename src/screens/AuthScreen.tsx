@@ -7,7 +7,9 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
 import { C, R, shadow } from '../constants/theme';
 
-const isMobile = typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+const isStandalone = typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches;
+const isMobileBrowser = typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) && !isStandalone;
+const isMobile = isMobileBrowser;
 
 async function saveUserIfNew(uid: string, displayName: string | null, email: string | null) {
   const userRef = doc(db, 'users', uid);
