@@ -3,7 +3,7 @@ import {
   View, Text, TouchableOpacity, StyleSheet, Modal, ScrollView, ActivityIndicator,
 } from 'react-native';
 import { db } from '../firebase/config';
-import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useUser } from '../context/UserContext';
 import { MISSIONS, CATEGORY_ORDER } from '../constants/missions';
 import { completeMultipleMissions, deleteTransaction } from '../services/walletService';
@@ -16,7 +16,6 @@ type TxItem = {
   id: string; type: string; amount: number;
   title: string; createdAt: string; targetDate?: string;
 };
-type Counts = { [id: string]: number };
 
 export default function CalendarScreen() {
   const { user, userData } = useUser();
@@ -26,19 +25,20 @@ export default function CalendarScreen() {
   const [allTxs, setAllTxs] = useState<TxItem[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
-  const [counts, setCounts] = useState<Counts>({});
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (!user) return;
     const q = query(
       collection(db, 'transactions'),
-      where('userId', '==', user.uid),
-      orderBy('createdAt', 'desc')
+      where('userId', '==', user.uid)
     );
     const unsub = onSnapshot(q, snap => {
-      setAllTxs(snap.docs.map(d => ({ id: d.id, ...d.data() } as TxItem)));
-    }, () => {});
+      const txs = snap.docs.map(d => ({ id: d.id, ...d.data() } as TxItem));
+      txs.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
+      setAllTxs(txs);
+    }, (err) => console.error('calendar tx error:', err));
     return () => unsub();
   }, [user]);
 
@@ -70,8 +70,17 @@ export default function CalendarScreen() {
   const selectedTxs  = selectedDate ? (byDate[selectedDate]?.items ?? []) : [];
   const selectedTotal = selectedDate ? (byDate[selectedDate]?.total ?? 0) : 0;
 
-  const totalReward = MISSIONS.reduce((s, m) => s + (counts[m.id] ?? 0) * m.rewardPerCount, 0);
-  const totalCount  = Object.values(counts).reduce((a, b) => a + b, 0);
+  const selectedMissions = MISSIONS.filter(m => selected.has(m.id));
+  const totalReward = selectedMissions.reduce((s, m) => s + m.rewardPerCount, 0);
+
+  const toggleMission = (id: string) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const handleDeleteTx = async (tx: TxItem) => {
     if (!window.confirm(`"${tx.title}" 삭제할까요?`)) return;
@@ -80,16 +89,16 @@ export default function CalendarScreen() {
   };
 
   const handleAddMission = async () => {
-    if (!user || totalCount === 0) return;
+    if (!user || selected.size === 0) return;
     setSubmitting(true);
     try {
-      const parts = MISSIONS.filter(m => (counts[m.id] ?? 0) > 0).map(m => `${m.title} ${counts[m.id]}회`);
+      const parts = selectedMissions.map(m => m.title);
       await completeMultipleMissions(
         user.uid, userData?.nickname ?? '이름없음', totalReward, parts.join(', '), selectedDate!
       );
-      setCounts({});
+      setSelected(new Set());
       setShowAdd(false);
-      window.alert(`${selectedDate}에 +${totalReward} 달란트 추가됐어요! 🎉`);
+      window.alert(`${selectedDate}에 +${totalReward} 달란트 추가됐어요!`);
     } catch { window.alert('추가에 실패했습니다.'); }
     finally { setSubmitting(false); }
   };
@@ -171,7 +180,7 @@ export default function CalendarScreen() {
                 ))
               }
             </ScrollView>
-            <TouchableOpacity style={styles.addBtn} onPress={() => { setCounts({}); setShowAdd(true); }}>
+            <TouchableOpacity style={styles.addBtn} onPress={() => { setSelected(new Set()); setShowAdd(true); }}>
               <Text style={styles.addBtnText}>+ 미션 달란트 추가</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.closeBtn} onPress={() => setSelectedDate(null)}>
@@ -189,32 +198,39 @@ export default function CalendarScreen() {
             <ScrollView style={{ flex: 1, marginTop: 12 }}>
               {CATEGORY_ORDER.map(cat => (
                 <View key={cat}>
-                  <Text style={styles.catLabel}>{cat}</Text>
-                  {MISSIONS.filter(m => m.category === cat).map(m => (
-                    <View key={m.id} style={styles.missionRow}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.missionName}>{m.title}</Text>
-                        <Text style={styles.missionDesc}>{m.description}</Text>
-                      </View>
-                      <View style={styles.stepper}>
-                        <TouchableOpacity style={styles.stepBtn} onPress={() => setCounts(p => ({ ...p, [m.id]: Math.max(0, (p[m.id] ?? 0) - 1) }))}>
-                          <Text style={styles.stepTxt}>−</Text>
-                        </TouchableOpacity>
-                        <Text style={styles.stepCount}>{counts[m.id] ?? 0}</Text>
-                        <TouchableOpacity style={styles.stepBtn} onPress={() => setCounts(p => ({ ...p, [m.id]: (p[m.id] ?? 0) + 1 }))}>
-                          <Text style={styles.stepTxt}>+</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  ))}
+                  {/* @ts-ignore */}
+                  <Text translate="no" style={styles.catLabel}>{cat}</Text>
+                  {MISSIONS.filter(m => m.category === cat).map(m => {
+                    const on = selected.has(m.id);
+                    return (
+                      <TouchableOpacity
+                        key={m.id}
+                        style={[styles.missionRow, on && styles.missionRowOn]}
+                        onPress={() => toggleMission(m.id)}
+                        activeOpacity={0.7}
+                      >
+                        <View style={{ flex: 1 }}>
+                          {/* @ts-ignore */}
+                          <Text translate="no" style={[styles.missionName, on && { color: C.primaryDeep }]}>{m.title}</Text>
+                          {/* @ts-ignore */}
+                          <Text translate="no" style={styles.missionDesc}>{m.description}</Text>
+                        </View>
+                        {/* @ts-ignore */}
+                        <Text translate="no" style={[styles.missionReward, on && { color: C.earn }]}>+{m.rewardPerCount}</Text>
+                        <View style={[styles.checkbox, on && styles.checkboxOn]}>
+                          {on && <Text style={styles.checkmark}>✓</Text>}
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
               ))}
             </ScrollView>
-            {totalCount > 0 && (
+            {selected.size > 0 && (
               <TouchableOpacity style={styles.submitBtn} onPress={handleAddMission} disabled={submitting}>
                 {submitting
                   ? <ActivityIndicator color={C.primary} />
-                  : <Text style={styles.submitTxt}>+{totalReward} 달란트 추가하기</Text>}
+                  : <Text style={styles.submitTxt}>달란트 추가하기 (+{totalReward})</Text>}
               </TouchableOpacity>
             )}
             <TouchableOpacity style={styles.closeBtn} onPress={() => setShowAdd(false)}>
@@ -266,13 +282,14 @@ const styles = StyleSheet.create({
     backgroundColor: C.surfaceAlt, paddingHorizontal: 8, paddingVertical: 3,
     borderRadius: R.sm, alignSelf: 'flex-start', marginTop: 12, marginBottom: 4,
   },
-  missionRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: C.border },
+  missionRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: C.border, gap: 10 },
+  missionRowOn: { backgroundColor: C.surfaceAlt, borderRadius: R.sm, borderBottomColor: 'transparent', marginHorizontal: -4, paddingHorizontal: 4 },
   missionName: { fontSize: 14, fontWeight: '600', color: C.textDark },
   missionDesc: { fontSize: 11, color: C.textLight, marginTop: 1 },
-  stepper: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  stepBtn: { width: 28, height: 28, borderRadius: 14, backgroundColor: C.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
-  stepTxt: { fontSize: 16, color: C.textMid, fontWeight: 'bold' },
-  stepCount: { fontSize: 15, fontWeight: 'bold', color: C.textDark, minWidth: 20, textAlign: 'center' },
+  missionReward: { fontSize: 14, fontWeight: 'bold', color: C.textMid, minWidth: 30, textAlign: 'right' },
+  checkbox: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
+  checkboxOn: { backgroundColor: C.earn, borderColor: C.earn },
+  checkmark: { color: '#fff', fontSize: 13, fontWeight: 'bold' },
   submitBtn: { backgroundColor: C.primaryDeep, borderRadius: R.lg, padding: 14, alignItems: 'center', marginTop: 8 },
   submitTxt: { color: C.primary, fontWeight: 'bold', fontSize: 14 },
 });
