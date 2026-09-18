@@ -1,0 +1,24 @@
+{
+  "name": "Talent80",
+  "short_name": "Talent80",
+  "description": "Mission Wallet for 80 Flea Market",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFF5EC",
+  "theme_color": "#E8B54A",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
