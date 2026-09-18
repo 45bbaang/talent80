@@ -36,7 +36,8 @@ export default function PaymentConfirmModal({ visible, itemName, price, balance,
               onPress={canAfford ? onConfirm : undefined}
               disabled={!canAfford}
             >
-              <Text style={styles.confirmBtnText}>결제하기</Text>
+              {/* @ts-ignore */}
+              <Text translate="no" style={styles.confirmBtnText}>결제하기</Text>
             </TouchableOpacity>
           </View>
         </View>

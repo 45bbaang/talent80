@@ -26,6 +26,18 @@ export default function QRScannerModal({ visible, onScan, onClose }: Props) {
     setError('');
     let cancelled = false;
 
+    // Force the html5-qrcode video to fill the square container
+    const style = document.createElement('style');
+    style.id = 'qr-square-fix';
+    style.textContent = `
+      #qr-reader-div { border: none !important; padding: 0 !important; }
+      #qr-reader-div video { width: 100% !important; height: 100% !important; object-fit: cover !important; }
+      #qr-reader-div img { display: none !important; }
+      #qr-reader__scan_region { border: none !important; }
+      #qr-reader__dashboard { display: none !important; }
+    `;
+    document.head.appendChild(style);
+
     import('html5-qrcode').then(({ Html5Qrcode }) => {
       if (cancelled) return;
       const scanner = new Html5Qrcode('qr-reader-div');
@@ -61,6 +73,7 @@ export default function QRScannerModal({ visible, onScan, onClose }: Props) {
     return () => {
       cancelled = true;
       stopScanner();
+      document.getElementById('qr-square-fix')?.remove();
     };
   }, [visible]);
 
@@ -99,7 +112,7 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 18, fontWeight: 'bold', color: C.textDark, marginBottom: 4 },
   subtitle: { fontSize: 13, color: C.textMid, marginBottom: 16, textAlign: 'center' },
-  qrArea: { width: 300, height: 300, marginBottom: 12 },
+  qrArea: { width: 280, height: 280, marginBottom: 12, borderRadius: R.md, overflow: 'hidden' },
   error: { color: C.spend, fontSize: 13, marginBottom: 12, textAlign: 'center' },
   closeBtn: {
     backgroundColor: C.surfaceAlt, borderRadius: R.xl,
