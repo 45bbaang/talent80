@@ -68,7 +68,8 @@ export default function AuthScreen() {
         style={styles.logo}
         resizeMode="contain"
       />
-      <Text style={[styles.title, fontsLoaded && { fontFamily: 'PyeongChangPeace-Bold' }]}>
+      {/* @ts-ignore */}
+      <Text translate="no" style={[styles.title, fontsLoaded && { fontFamily: 'PyeongChangPeace-Bold' }]}>
         Mission Wallet
       </Text>
 

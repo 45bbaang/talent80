@@ -41,6 +41,13 @@ const TAB_LABELS: Record<string, string> = {
   Calendar: 'Calendar',
 };
 
+function NoTranslateLabel({ label, color }: { label: string; color: string }) {
+  return (
+    // @ts-ignore
+    <Text translate="no" style={{ fontSize: 11, color, marginBottom: 4 }}>{label}</Text>
+  );
+}
+
 function TabHeader({ name }: { name: string }) {
   const icon = TAB_ICONS[name];
   const label = TAB_LABELS[name] ?? name;
@@ -53,7 +60,8 @@ function TabHeader({ name }: { name: string }) {
           resizeMode="contain"
         />
       )}
-      <Text style={{ fontFamily: 'PyeongChangPeace-Bold', fontSize: 18, color: C.textDark }}>
+      {/* @ts-ignore */}
+      <Text translate="no" style={{ fontFamily: 'PyeongChangPeace-Bold', fontSize: 18, color: C.textDark }}>
         {label}
       </Text>
     </View>
@@ -148,9 +156,9 @@ function AppContent() {
               };
             }}
           >
-            <Tab.Screen name="Wallet"   component={WalletScreen}   options={{ title: 'Wallet',   headerTitle: () => <TabHeader name="Wallet" /> }} />
-            <Tab.Screen name="Mission"  component={MissionScreen}  options={{ title: 'Mission',  headerTitle: () => <TabHeader name="Mission" /> }} />
-            <Tab.Screen name="Calendar" component={CalendarScreen} options={{ title: 'Calendar', headerTitle: () => <TabHeader name="Calendar" /> }} />
+            <Tab.Screen name="Wallet"   component={WalletScreen}   options={{ title: 'Wallet',   headerTitle: () => <TabHeader name="Wallet" />,   tabBarLabel: ({ color }) => <NoTranslateLabel label="Wallet"   color={color} /> }} />
+            <Tab.Screen name="Mission"  component={MissionScreen}  options={{ title: 'Mission',  headerTitle: () => <TabHeader name="Mission" />,  tabBarLabel: ({ color }) => <NoTranslateLabel label="Mission"  color={color} /> }} />
+            <Tab.Screen name="Calendar" component={CalendarScreen} options={{ title: 'Calendar', headerTitle: () => <TabHeader name="Calendar" />, tabBarLabel: ({ color }) => <NoTranslateLabel label="Calendar" color={color} /> }} />
             {isAdmin && (
               <Tab.Screen
                 name="Admin"
