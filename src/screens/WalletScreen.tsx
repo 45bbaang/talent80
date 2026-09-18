@@ -76,7 +76,7 @@ export default function WalletScreen() {
     return () => unsub();
   }, [user]);
 
-  const balance = transactions.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+  const balance = userData?.balance ?? 0;
 
   const formatDate = (iso: string) => {
     try {
