@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { db } from '../firebase/config';
-import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { deleteTransaction } from '../services/walletService';
 import { useUser } from '../context/UserContext';
 import { C, R, shadow } from '../constants/theme';
@@ -66,12 +66,13 @@ export default function WalletScreen() {
     if (!user) return;
     const txQuery = query(
       collection(db, 'transactions'),
-      where('userId', '==', user.uid),
-      orderBy('createdAt', 'desc')
+      where('userId', '==', user.uid)
     );
     const unsub = onSnapshot(txQuery, (snap) => {
-      setTransactions(snap.docs.map(d => ({ id: d.id, ...d.data() } as Transaction)));
-    }, () => {});
+      const txs = snap.docs.map(d => ({ id: d.id, ...d.data() } as Transaction));
+      txs.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      setTransactions(txs);
+    }, (err) => console.error('transactions error:', err));
     return () => unsub();
   }, [user]);
 
