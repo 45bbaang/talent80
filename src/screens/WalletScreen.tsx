@@ -114,6 +114,21 @@ export default function WalletScreen() {
     }
   };
 
+  const handleCacheRefresh = async () => {
+    try {
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+      }
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r => r.unregister()));
+      }
+    } finally {
+      window.location.reload();
+    }
+  };
+
   const handleLogout = async () => {
     if (!window.confirm('로그아웃 하시겠습니까?')) return;
     await logout();
@@ -186,6 +201,9 @@ export default function WalletScreen() {
             onPress={() => setShowInquiry(true)}
           >
             <Text style={styles.profileBtnText}>문의</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.profileBtn} onPress={handleCacheRefresh}>
+            <Text style={styles.profileBtnText}>업데이트</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.profileBtn} onPress={handleLogout}>
             <Text style={styles.profileBtnText}>로그아웃</Text>
