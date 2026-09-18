@@ -14,6 +14,7 @@ import MissionScreen from './src/screens/MissionScreen';
 import CalendarScreen from './src/screens/CalendarScreen';
 import AdminScreen from './src/screens/AdminScreen';
 import AnnouncementModal from './src/components/AnnouncementModal';
+import InstallPrompt from './src/components/InstallPrompt';
 import { C } from './src/constants/theme';
 
 const Tab = createBottomTabNavigator();
@@ -176,6 +177,20 @@ function AppContent() {
   );
 }
 
+function ServiceWorkerRegistrar() {
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  }, []);
+  return null;
+}
+
 export default function App() {
-  return <UserProvider><AppContent /></UserProvider>;
+  return (
+    <UserProvider>
+      <ServiceWorkerRegistrar />
+      <AppContent />
+      <InstallPrompt />
+    </UserProvider>
+  );
 }
