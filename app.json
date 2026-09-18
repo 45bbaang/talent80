@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Talent80",
+    "name": "달란트 80",
     "slug": "talent80",
     "description": "Mission Wallet for 80 Flea Market",
     "version": "1.0.0",
@@ -21,9 +21,9 @@
     },
     "web": {
       "favicon": "./assets/favicon.png",
-      "name": "Talent80",
-      "shortName": "Talent80",
-      "title": "Talent80"
+      "name": "달란트 80",
+      "shortName": "달란트 80",
+      "title": "달란트 80"
     }
   }
 }
