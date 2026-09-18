@@ -91,7 +91,7 @@ export default function InstallPrompt() {
           <Text style={styles.bannerSub}>
             {deferredPrompt
               ? '홈 화면에 추가하면 앱처럼 사용 가능해요'
-              : 'Chrome 메뉴(⋮) → "앱 설치" 또는 "홈 화면에 추가"'}
+              : 'Chrome 메뉴(⋮) → "설치 및 바로가기 만들기"'}
           </Text>
         </View>
         {deferredPrompt && (
