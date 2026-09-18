@@ -74,7 +74,7 @@ export default function MissionScreen() {
           <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} disabled={loading}>
             {loading
               ? <ActivityIndicator color={C.primary} />
-              : <Text style={styles.submitText}>지갑에 달란트 담기</Text>}
+              : <Text style={styles.submitText}>미션완료</Text>}
           </TouchableOpacity>
         </View>
       )}
