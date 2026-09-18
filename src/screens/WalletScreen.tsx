@@ -10,6 +10,10 @@ import { deleteTransaction } from '../services/walletService';
 import { useUser } from '../context/UserContext';
 import { C, R, shadow } from '../constants/theme';
 import InquiryModal from '../components/InquiryModal';
+import QRScannerModal from '../components/QRScannerModal';
+import PaymentConfirmModal from '../components/PaymentConfirmModal';
+import ReceiptModal from '../components/ReceiptModal';
+import { payWithQR } from '../services/walletService';
 
 type Transaction = {
   id: string;
@@ -26,6 +30,30 @@ export default function WalletScreen() {
 
   // 문의 모달
   const [showInquiry, setShowInquiry] = useState(false);
+
+  // QR 결제 플로우
+  const [showQR, setShowQR] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [showReceipt, setShowReceipt] = useState(false);
+  const [qrItem, setQrItem] = useState<{ name: string; price: number } | null>(null);
+
+  const handleQRScan = (data: { name: string; price: number }) => {
+    setQrItem(data);
+    setShowQR(false);
+    setShowConfirm(true);
+  };
+
+  const handleConfirmPay = async () => {
+    if (!qrItem || !user) return;
+    setShowConfirm(false);
+    try {
+      const userName = userData?.nickname ?? userData?.name ?? '이름없음';
+      await payWithQR(user.uid, userName, qrItem);
+      setShowReceipt(true);
+    } catch (e: any) {
+      window.alert(e.message ?? '결제에 실패했습니다.');
+    }
+  };
 
   // 닉네임 수정 상태
   const [isEditing, setIsEditing] = useState(false);
@@ -174,7 +202,7 @@ export default function WalletScreen() {
         <Text style={styles.balanceAmount}>{balance} 달란트</Text>
       </View>
 
-      <TouchableOpacity style={styles.qrBtn}>
+      <TouchableOpacity style={styles.qrBtn} onPress={() => setShowQR(true)}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <Image source={require('../../assets/Walleticon/qr-scan.png')} style={styles.qrBtnIcon} resizeMode="contain" />
           <Text style={styles.qrBtnText}>QR 스캔 결제</Text>
@@ -182,6 +210,21 @@ export default function WalletScreen() {
       </TouchableOpacity>
 
       <InquiryModal visible={showInquiry} onClose={() => setShowInquiry(false)} />
+      <QRScannerModal visible={showQR} onScan={handleQRScan} onClose={() => setShowQR(false)} />
+      <PaymentConfirmModal
+        visible={showConfirm}
+        itemName={qrItem?.name ?? ''}
+        price={qrItem?.price ?? 0}
+        balance={balance}
+        onConfirm={handleConfirmPay}
+        onCancel={() => setShowConfirm(false)}
+      />
+      <ReceiptModal
+        visible={showReceipt}
+        itemName={qrItem?.name ?? ''}
+        price={qrItem?.price ?? 0}
+        onClose={() => { setShowReceipt(false); setQrItem(null); }}
+      />
 
       <Text style={styles.historyTitle}>미션 기록</Text>
       <FlatList
